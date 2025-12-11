@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 
-const Checkout = lazy(() => import('../pages/Checkout'));
+const Checkout = lazy(() => import('../pages/checkout'));
 
 export const checkoutRoutes = [
   {

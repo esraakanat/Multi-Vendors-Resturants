@@ -1,7 +1,7 @@
 
 import {lazy} from 'react';
 
-const Services = lazy(() => import('../pages/Services'))
+const Services = lazy(() => import('../pages/services'))
 
  export const servicesRoutes = [
   {
