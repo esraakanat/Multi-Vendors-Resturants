@@ -94,18 +94,19 @@ function ManageProfileComponent() {
       await logoutMutation.mutateAsync()
       
       // Navigate to home
-      navigate(appRoutes.restaurantHome.main)
+      navigate(appRoutes.restaurantHome.main, { replace: true })
       
-      // Reload page to update auth state
-      window.location.reload()
+      // Trigger auth change event to update UI
+      window.dispatchEvent(new Event("authChange"))
     } catch (error) {
       // Even if API fails, clear local storage (including cart) and redirect
       console.error("Logout error:", error)
       localStorage.removeItem("access_token")
       localStorage.removeItem("customer")
       localStorage.removeItem("cart") // Clear cart when user logs out
-      navigate(appRoutes.restaurantHome.main)
-      window.location.reload()
+      navigate(appRoutes.restaurantHome.main, { replace: true })
+      // Trigger auth change event to update UI
+      window.dispatchEvent(new Event("authChange"))
     }
   }
 

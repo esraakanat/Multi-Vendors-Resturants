@@ -62,8 +62,10 @@ function AuthModal({ isOpen, onClose, redirectTo, initialMode = "login" }) {
           if (redirectTo) {
             navigate(redirectTo)
           } else {
-            // Reload page to update auth state
-            window.location.reload()
+            // Navigate to current location to refresh auth state without full reload
+            navigate(window.location.pathname, { replace: true })
+            // Trigger auth change event
+            window.dispatchEvent(new Event("authChange"))
           }
         }
       } else {
@@ -79,8 +81,10 @@ function AuthModal({ isOpen, onClose, redirectTo, initialMode = "login" }) {
           if (redirectTo) {
             navigate(redirectTo)
           } else {
-            // Reload page to update auth state
-            window.location.reload()
+            // Navigate to current location to refresh auth state without full reload
+            navigate(window.location.pathname, { replace: true })
+            // Trigger auth change event
+            window.dispatchEvent(new Event("authChange"))
           }
         }
       }
