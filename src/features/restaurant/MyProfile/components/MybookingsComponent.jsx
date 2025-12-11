@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import userImage from "@/assets/restaurant-assets/navbar/user1.svg"
+import userImage from "@/assets/restaurant-assets/navbar/User1.svg"
 import manageProfileIcon from "@/assets/restaurant-assets/My Profile-assets/Manage Profile.svg"
 import myOrderIcon from "@/assets/restaurant-assets/My Profile-assets/My Order.svg"
 import myBookingsIcon from "@/assets/restaurant-assets/My Profile-assets/My bookings.svg"
