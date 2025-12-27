@@ -11,11 +11,14 @@ function AuthModal({ isOpen, onClose, redirectTo, initialMode = "login" }) {
   const navigate = useNavigate()
   const [isLogin, setIsLogin] = useState(initialMode === "login")
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState("")
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
+    confirmPassword: "",
   })
 
   const loginMutation = useLogin()
@@ -25,7 +28,7 @@ function AuthModal({ isOpen, onClose, redirectTo, initialMode = "login" }) {
   // Reset form only when modal opens (not on every render)
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
-      setFormData({ name: "", email: "", password: "" })
+      setFormData({ firstName: "", lastName: "", email: "", password: "", confirmPassword: "" })
       setError("")
       setIsLogin(initialMode === "login")
     }
@@ -69,23 +72,32 @@ function AuthModal({ isOpen, onClose, redirectTo, initialMode = "login" }) {
           }
         }
       } else {
+        // Register - Validate password confirmation
+        if (formData.password !== formData.confirmPassword) {
+          setError("The password field confirmation does not match.")
+          return
+        }
+
         // Register
         const result = await registerMutation.mutateAsync({
-          name: formData.name,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           email: formData.email,
           password: formData.password,
+          confirmPassword: formData.confirmPassword,
         })
 
-        if (result?.access_token) {
-          onClose()
-          if (redirectTo) {
-            navigate(redirectTo)
-          } else {
-            // Navigate to current location to refresh auth state without full reload
-            navigate(window.location.pathname, { replace: true })
-            // Trigger auth change event
-            window.dispatchEvent(new Event("authChange"))
-          }
+        // If registration is successful, switch to login mode in the same modal
+        if (result) {
+          // Save email before clearing form
+          const registeredEmail = formData.email
+          
+          // Clear form data and switch to login mode
+          setFormData({ firstName: "", lastName: "", email: registeredEmail, password: "", confirmPassword: "" })
+          setError("")
+          
+          // Switch to login mode in the same modal
+          setIsLogin(true)
         }
       }
     } catch (err) {
@@ -110,7 +122,7 @@ function AuthModal({ isOpen, onClose, redirectTo, initialMode = "login" }) {
 
   const toggleAuthMode = () => {
     setIsLogin(!isLogin)
-    setFormData({ name: "", email: "", password: "" })
+    setFormData({ firstName: "", lastName: "", email: "", password: "", confirmPassword: "" })
     setError("") // Clear error when switching modes
   }
 
@@ -147,14 +159,30 @@ function AuthModal({ isOpen, onClose, redirectTo, initialMode = "login" }) {
             </div>
           )}
 
-          {/* Name Field - Only for Sign Up */}
+          {/* First Name Field - Only for Sign Up */}
           {!isLogin && (
             <div>
               <Input
                 type="text"
-                name="name"
-                placeholder="Name"
-                value={formData.name}
+                name="firstName"
+                placeholder="First Name"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-[#272727] bg-white focus:border-[#EC2323] focus:ring-[#EC2323]"
+                required
+                disabled={loginMutation.isPending || registerMutation.isPending}
+              />
+            </div>
+          )}
+
+          {/* Last Name Field - Only for Sign Up */}
+          {!isLogin && (
+            <div>
+              <Input
+                type="text"
+                name="lastName"
+                placeholder="Last Name"
+                value={formData.lastName}
                 onChange={handleInputChange}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-[#272727] bg-white focus:border-[#EC2323] focus:ring-[#EC2323]"
                 required
@@ -202,6 +230,34 @@ function AuthModal({ isOpen, onClose, redirectTo, initialMode = "login" }) {
               )}
             </button>
           </div>
+
+          {/* Confirm Password Field - Only for Sign Up */}
+          {!isLogin && (
+            <div className="relative">
+              <Input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="Confirm Password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 text-sm text-[#272727] bg-white focus:border-[#EC2323] focus:ring-[#EC2323]"
+                required
+                disabled={loginMutation.isPending || registerMutation.isPending}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={loginMutation.isPending || registerMutation.isPending}
+              >
+                {showConfirmPassword ? (
+                  <Eye className="w-5 h-5" />
+                ) : (
+                  <EyeOff className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Submit Button */}
           <Button

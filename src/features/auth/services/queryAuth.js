@@ -28,9 +28,13 @@ async function loginUser(credentials) {
 // Register API
 async function registerUser(userData) {
   const formData = new FormData()
-  formData.append("name", userData.name)
+  formData.append("first_name", userData.firstName)
+  formData.append("last_name", userData.lastName || "")
+  // Also send name as combination of first and last name for compatibility
+  formData.append("name", `${userData.firstName} ${userData.lastName || ""}`.trim())
   formData.append("email", userData.email)
   formData.append("password", userData.password)
+  formData.append("password_confirmation", userData.confirmPassword || userData.password)
 
   const { data } = await httpClient.post("/auth/register", formData, {
     headers: {
