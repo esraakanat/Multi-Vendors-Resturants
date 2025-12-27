@@ -127,7 +127,7 @@ function RestaurantNavbar() {
             </button>
 
             {/* Search Bar */}
-            <div className="flex-1 max-w-md">
+            <div className="hidden sm:block flex-1 max-w-md">
               <div className="relative w-full">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
                   <img 

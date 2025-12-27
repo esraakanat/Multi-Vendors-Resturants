@@ -152,6 +152,42 @@ function ReserveTableComponent() {
 
   const handleReserve = () => {
     if (!isFormValid) return
+    
+    // Generate unique booking ID
+    const bookingId = Date.now().toString()
+    
+    // Determine time display based on reservation type
+    const displayTime = (selectedType === "all" || selectedType === "event") 
+      ? `${timeFrom} - ${timeTo}` 
+      : selectedTime
+    
+    // Create booking object
+    const newBooking = {
+      id: bookingId,
+      date: formattedDate,
+      time: displayTime,
+      guests: Number(guestCount),
+      status: "Confirmed",
+      type: selectedType,
+      tablesCount: selectedType === "multiple" ? tablesCount : null,
+      eventType: selectedType === "event" ? eventType : null,
+      decoration: selectedType === "event" ? decoration : null,
+      notes: notes || null,
+    }
+    
+    // Get existing bookings from localStorage
+    try {
+      const existingBookings = JSON.parse(localStorage.getItem("bookings") || "[]")
+      existingBookings.unshift(newBooking) // Add new booking at the beginning
+      localStorage.setItem("bookings", JSON.stringify(existingBookings))
+      
+      // Dispatch custom event to notify other components in the same tab
+      window.dispatchEvent(new Event("bookingAdded"))
+    } catch (error) {
+      console.error("Failed to save booking to localStorage:", error)
+      // Still show toast even if localStorage fails
+    }
+    
     const tablesInfo = selectedType === "multiple" ? ` with ${tablesCount}` : ""
     const timeInfo = (selectedType === "all" || selectedType === "event") ? `from ${timeFrom} to ${timeTo}` : `at ${selectedTime}`
     const eventInfo = selectedType === "event" ? ` (${eventType}, ${decoration})` : ""
@@ -168,6 +204,7 @@ function ReserveTableComponent() {
     setEventType("")
     setDecoration("")
     setNotes("")
+    setSelectedDate(null)
   }
 
   const today = new Date()

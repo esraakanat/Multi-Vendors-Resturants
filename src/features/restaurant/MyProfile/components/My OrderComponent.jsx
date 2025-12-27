@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import userImage from "@/assets/restaurant-assets/navbar/User1.svg"
 import manageProfileIcon from "@/assets/restaurant-assets/My Profile-assets/Manage Profile.svg"
@@ -13,7 +13,8 @@ import detailsImage from "@/assets/restaurant-assets/home/detailsimg.png"
 import { appRoutes } from "@/routes/routeDefinitions"
 import { useProfile } from "@/features/restaurant/MyProfile/services/queryProfile"
 
-const ORDERS_DATA = [
+// Static fallback data (can be removed if you only want dynamic data)
+const STATIC_ORDERS_DATA = [
   {
     id: "11236587267",
     productName: "Mediterranean Salad",
@@ -70,13 +71,54 @@ const ITEMS_PER_PAGE = 5
 function MyOrderComponent() {
   const navigate = useNavigate()
   const [currentPage, setCurrentPage] = useState(1)
+  const [ordersData, setOrdersData] = useState([])
   const { data: profileData, isLoading } = useProfile()
 
-  const totalPages = Math.ceil(ORDERS_DATA.length / ITEMS_PER_PAGE)
+  // Load orders from localStorage
+  useEffect(() => {
+    const loadOrders = () => {
+      try {
+        const storedOrders = JSON.parse(localStorage.getItem("orders") || "[]")
+        // Use stored orders if available, otherwise use static data
+        if (storedOrders.length > 0) {
+          setOrdersData(storedOrders)
+        } else {
+          setOrdersData(STATIC_ORDERS_DATA)
+        }
+      } catch (error) {
+        console.error("Failed to load orders from localStorage:", error)
+        setOrdersData(STATIC_ORDERS_DATA)
+      }
+    }
+
+    loadOrders()
+
+    // Listen for storage changes (when a new order is added)
+    const handleStorageChange = (e) => {
+      if (e.key === "orders") {
+        loadOrders()
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    
+    // Also listen for custom event for same-tab updates
+    const handleCustomStorageChange = () => {
+      loadOrders()
+    }
+    window.addEventListener("orderAdded", handleCustomStorageChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("orderAdded", handleCustomStorageChange)
+    }
+  }, [])
+
+  const totalPages = Math.ceil(ordersData.length / ITEMS_PER_PAGE)
   const paginatedOrders = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE
-    return ORDERS_DATA.slice(start, start + ITEMS_PER_PAGE)
-  }, [currentPage])
+    return ordersData.slice(start, start + ITEMS_PER_PAGE)
+  }, [currentPage, ordersData])
 
   // Get customer data for display
   const getCustomerData = () => {
@@ -207,23 +249,58 @@ function MyOrderComponent() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 md:p-8">
               <h1 className="text-2xl font-heading font-bold text-[#272727] mb-8">My Order</h1>
 
-              {/* Desktop Table */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="text-left text-sm font-sans text-[#272727] border-b border-gray-100">
-                      <th className="pb-4 font-medium">Order id</th>
-                      <th className="pb-4 font-medium">Products</th>
-                      <th className="pb-4 font-medium">Date</th>
-                      <th className="pb-4 font-medium">Amount</th>
-                      <th className="pb-4 font-medium">Details</th>
-                      <th className="pb-4 font-medium">Review</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedOrders.map((order) => (
-                      <tr key={order.id} className="border-b border-gray-50 text-sm text-[#272727]">
-                        <td className="py-4 text-[#8F8F8F] font-medium">{order.id}</td>
+              {/* Empty State */}
+              {ordersData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 md:py-24 text-center">
+                  <div className="mb-6">
+                    <svg
+                      className="w-24 h-24 md:w-32 md:h-32 text-gray-300 mx-auto"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-heading font-semibold text-[#272727] mb-3">
+                    No Orders Yet
+                  </h2>
+                  <p className="text-sm md:text-base text-[#8F8F8F] mb-8 max-w-md">
+                    You haven&apos;t placed any orders yet. Start exploring our delicious menu and place your first order!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate(appRoutes.restaurantHome.main)}
+                    className="px-6 py-3 bg-[#EC2323] text-white font-medium rounded-lg hover:bg-[#d02323] transition-colors"
+                  >
+                    Browse Menu
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="text-left text-sm font-sans text-[#272727] border-b border-gray-100">
+                          <th className="pb-4 font-medium">Order id</th>
+                          <th className="pb-4 font-medium">Products</th>
+                          <th className="pb-4 font-medium">Date</th>
+                          <th className="pb-4 font-medium">Amount</th>
+                          <th className="pb-4 font-medium">Details</th>
+                          <th className="pb-4 font-medium">Review</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedOrders.map((order) => (
+                          <tr key={order.id} className="border-b border-gray-50 text-sm text-[#272727]">
+                        <td className="py-4 text-[#8F8F8F] font-medium">{order.orderCode || order.id}</td>
                         <td className="py-4">
                           <div className="flex items-center gap-3">
                             <button
@@ -234,9 +311,12 @@ function MyOrderComponent() {
                               ‹
                             </button>
                             <img
-                              src={order.productImage}
+                              src={order.productImage || foodImage1}
                               alt={order.productName}
                               className="w-14 h-14 rounded-lg object-cover"
+                              onError={(e) => {
+                                e.target.src = foodImage1
+                              }}
                             />
                             <button
                               type="button"
@@ -259,11 +339,11 @@ function MyOrderComponent() {
                             Review order
                           </button>
                         </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
               {/* Mobile Cards */}
               <div className="space-y-4 md:hidden">
@@ -274,14 +354,17 @@ function MyOrderComponent() {
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-medium text-[#8F8F8F]">Order id</p>
-                      <span className="text-sm font-semibold text-[#272727]">{order.id}</span>
+                      <span className="text-sm font-semibold text-[#272727]">{order.orderCode || order.id}</span>
                     </div>
 
                     <div className="flex items-center gap-3">
                       <img
-                        src={order.productImage}
+                        src={order.productImage || foodImage1}
                         alt={order.productName}
                         className="w-16 h-16 rounded-lg object-cover"
+                        onError={(e) => {
+                          e.target.src = foodImage1
+                        }}
                       />
                       <div className="flex-1 space-y-1">
                         <p className="text-sm font-semibold text-[#272727]">{order.productName}</p>
@@ -306,51 +389,55 @@ function MyOrderComponent() {
                 ))}
               </div>
 
-              {/* Pagination */}
-              <div className="flex items-center justify-center gap-2 mt-8">
-                <button
-                  type="button"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    currentPage === 1
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
-                  }`}
-                >
-                  Prev
-                </button>
-                {Array.from({ length: totalPages }).map((_, index) => {
-                  const page = index + 1
-                  const isActive = page === currentPage
-                  return (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() => handlePageChange(page)}
-                      className={`w-8 h-8 rounded-md text-sm font-medium ${
-                        isActive
-                          ? "bg-[#EC2323] text-white"
-                          : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                })}
-                <button
-                  type="button"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    currentPage === totalPages
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
-                  }`}
-                >
-                  Next
-                </button>
-              </div>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-8">
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className={`px-3 py-1 rounded-md text-sm font-medium ${
+                          currentPage === 1
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
+                        }`}
+                      >
+                        Prev
+                      </button>
+                      {Array.from({ length: totalPages }).map((_, index) => {
+                        const page = index + 1
+                        const isActive = page === currentPage
+                        return (
+                          <button
+                            key={page}
+                            type="button"
+                            onClick={() => handlePageChange(page)}
+                            className={`w-8 h-8 rounded-md text-sm font-medium ${
+                              isActive
+                                ? "bg-[#EC2323] text-white"
+                                : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className={`px-3 py-1 rounded-md text-sm font-medium ${
+                          currentPage === totalPages
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
+                        }`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </main>
         </div>

@@ -6,7 +6,7 @@ import CheckoutBreadcrumb from "@/shared/components/CheckoutBreadcrumb"
 import { useProfile } from "@/features/restaurant/MyProfile/services/queryProfile"
 
 function PlaceOrderComponent() {
-  const { selectedTotal, clearCart } = useCart()
+  const { selectedTotal, clearCart, items } = useCart()
   const navigate = useNavigate()
   const location = useLocation()
   const { data: profileData } = useProfile()
@@ -53,6 +53,45 @@ function PlaceOrderComponent() {
   }, [])
 
   const handleConfirm = async () => {
+    // Get selected cart items (only items that are selected)
+    const selectedItems = items.filter((item) => item.isSelected)
+    
+    // Create order object with all necessary information
+    const orderDate = new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+    
+    // Create order entry for each product in the cart
+    const orderEntries = selectedItems.map((item) => ({
+      id: `${orderCode}-${item.id}`,
+      orderCode: orderCode,
+      productName: item.name,
+      productImage: item.image || "",
+      date: orderDate,
+      amount: item.price * item.quantity,
+      quantity: item.quantity,
+      price: item.price,
+      productId: item.productId,
+      variant: item.variant,
+      modifiers: item.modifiers,
+      specialRequest: item.specialRequest || null,
+    }))
+    
+    // Save orders to localStorage
+    try {
+      const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]")
+      // Add new orders at the beginning (most recent first)
+      existingOrders.unshift(...orderEntries)
+      localStorage.setItem("orders", JSON.stringify(existingOrders))
+      
+      // Dispatch custom event to notify other components in the same tab
+      window.dispatchEvent(new Event("orderAdded"))
+    } catch (error) {
+      console.error("Failed to save order to localStorage:", error)
+    }
+    
     // Clear cart when confirming order
     await clearCart()
     navigate(appRoutes.confirmOrder.main)

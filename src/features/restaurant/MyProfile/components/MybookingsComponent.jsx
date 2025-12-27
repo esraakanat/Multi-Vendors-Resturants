@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import userImage from "@/assets/restaurant-assets/navbar/User1.svg"
 import manageProfileIcon from "@/assets/restaurant-assets/My Profile-assets/Manage Profile.svg"
@@ -8,7 +8,8 @@ import myReviewsIcon from "@/assets/restaurant-assets/My Profile-assets/My Revie
 import { appRoutes } from "@/routes/routeDefinitions"
 import { useProfile } from "@/features/restaurant/MyProfile/services/queryProfile"
 
-const BOOKINGS_DATA = [
+// Static fallback data (can be removed if you only want dynamic data)
+const STATIC_BOOKINGS_DATA = [
   {
     id: "11236587267",
     date: "20-07-2024",
@@ -65,13 +66,54 @@ const ITEMS_PER_PAGE = 5
 function MyBookingsComponent() {
   const navigate = useNavigate()
   const [currentPage, setCurrentPage] = useState(1)
+  const [bookingsData, setBookingsData] = useState([])
   const { data: profileData, isLoading } = useProfile()
 
-  const totalPages = Math.ceil(BOOKINGS_DATA.length / ITEMS_PER_PAGE)
+  // Load bookings from localStorage
+  useEffect(() => {
+    const loadBookings = () => {
+      try {
+        const storedBookings = JSON.parse(localStorage.getItem("bookings") || "[]")
+        // Use stored bookings if available, otherwise use static data
+        if (storedBookings.length > 0) {
+          setBookingsData(storedBookings)
+        } else {
+          setBookingsData(STATIC_BOOKINGS_DATA)
+        }
+      } catch (error) {
+        console.error("Failed to load bookings from localStorage:", error)
+        setBookingsData(STATIC_BOOKINGS_DATA)
+      }
+    }
+
+    loadBookings()
+
+    // Listen for storage changes (when a new booking is added)
+    const handleStorageChange = (e) => {
+      if (e.key === "bookings") {
+        loadBookings()
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    
+    // Also listen for custom event for same-tab updates
+    const handleCustomStorageChange = () => {
+      loadBookings()
+    }
+    window.addEventListener("bookingAdded", handleCustomStorageChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("bookingAdded", handleCustomStorageChange)
+    }
+  }, [])
+
+  const totalPages = Math.ceil(bookingsData.length / ITEMS_PER_PAGE)
   const paginatedBookings = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE
-    return BOOKINGS_DATA.slice(start, start + ITEMS_PER_PAGE)
-  }, [currentPage])
+    return bookingsData.slice(start, start + ITEMS_PER_PAGE)
+  }, [currentPage, bookingsData])
 
   // Get customer data for display
   const getCustomerData = () => {
