@@ -8,58 +8,6 @@ import myReviewsIcon from "@/assets/restaurant-assets/My Profile-assets/My Revie
 import { appRoutes } from "@/routes/routeDefinitions"
 import { useProfile } from "@/features/restaurant/MyProfile/services/queryProfile"
 
-// Static fallback data (can be removed if you only want dynamic data)
-const STATIC_BOOKINGS_DATA = [
-  {
-    id: "11236587267",
-    date: "20-07-2024",
-    time: "14:00",
-    guests: 20,
-    status: "Confirmed",
-  },
-  {
-    id: "11236587268",
-    date: "20-07-2024",
-    time: "20:00",
-    guests: 10,
-    status: "Canceled",
-  },
-  {
-    id: "11236587269",
-    date: "20-07-2024",
-    time: "12:00",
-    guests: 6,
-    status: "Confirmed",
-  },
-  {
-    id: "11236587270",
-    date: "20-07-2024",
-    time: "23:00",
-    guests: 7,
-    status: "Canceled",
-  },
-  {
-    id: "11236587271",
-    date: "20-07-2024",
-    time: "18:00",
-    guests: 15,
-    status: "Confirmed",
-  },
-  {
-    id: "11236587272",
-    date: "21-07-2024",
-    time: "11:00",
-    guests: 12,
-    status: "Confirmed",
-  },
-  {
-    id: "11236587273",
-    date: "22-07-2024",
-    time: "19:30",
-    guests: 8,
-    status: "Canceled",
-  },
-]
 
 const ITEMS_PER_PAGE = 5
 
@@ -74,15 +22,11 @@ function MyBookingsComponent() {
     const loadBookings = () => {
       try {
         const storedBookings = JSON.parse(localStorage.getItem("bookings") || "[]")
-        // Use stored bookings if available, otherwise use static data
-        if (storedBookings.length > 0) {
-          setBookingsData(storedBookings)
-        } else {
-          setBookingsData(STATIC_BOOKINGS_DATA)
-        }
+        // Only use stored bookings, no static fallback
+        setBookingsData(storedBookings)
       } catch (error) {
         console.error("Failed to load bookings from localStorage:", error)
-        setBookingsData(STATIC_BOOKINGS_DATA)
+        setBookingsData([])
       }
     }
 
@@ -254,8 +198,40 @@ function MyBookingsComponent() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 md:p-8">
               <h1 className="text-2xl font-heading font-bold text-[#272727] mb-8">My bookings</h1>
 
-              {/* Desktop Table */}
-              <div className="hidden md:block overflow-x-auto">
+              {/* Empty State */}
+              {bookingsData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="mb-4">
+                    <svg
+                      className="w-24 h-24 text-gray-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="text-xl font-heading font-semibold text-[#272727] mb-2">No bookings yet</h2>
+                  <p className="text-sm text-[#8F8F8F] mb-6 max-w-md">
+                    You haven't made any reservations yet. Start by booking a table at your favorite restaurant!
+                  </p>
+                  <button
+                    onClick={() => navigate(appRoutes.reserveDetails.main)}
+                    className="bg-[#EC2323] text-white px-6 py-3 rounded-lg font-sans text-sm font-medium hover:bg-[#d02323] transition-colors"
+                  >
+                    Make a Reservation
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop Table */}
+                  <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
                     <tr className="text-left text-sm font-sans text-[#272727] border-b border-gray-100">
@@ -327,51 +303,55 @@ function MyBookingsComponent() {
                 ))}
               </div>
 
-              {/* Pagination */}
-              <div className="flex items-center justify-center gap-2 mt-8">
-                <button
-                  type="button"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    currentPage === 1
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
-                  }`}
-                >
-                  Prev
-                </button>
-                {Array.from({ length: totalPages }).map((_, index) => {
-                  const page = index + 1
-                  const isActive = page === currentPage
-                  return (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() => handlePageChange(page)}
-                      className={`w-8 h-8 rounded-md text-sm font-medium ${
-                        isActive
-                          ? "bg-[#EC2323] text-white"
-                          : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                })}
-                <button
-                  type="button"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    currentPage === totalPages
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
-                  }`}
-                >
-                  Next
-                </button>
-              </div>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-8">
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className={`px-3 py-1 rounded-md text-sm font-medium ${
+                          currentPage === 1
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
+                        }`}
+                      >
+                        Prev
+                      </button>
+                      {Array.from({ length: totalPages }).map((_, index) => {
+                        const page = index + 1
+                        const isActive = page === currentPage
+                        return (
+                          <button
+                            key={page}
+                            type="button"
+                            onClick={() => handlePageChange(page)}
+                            className={`w-8 h-8 rounded-md text-sm font-medium ${
+                              isActive
+                                ? "bg-[#EC2323] text-white"
+                                : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className={`px-3 py-1 rounded-md text-sm font-medium ${
+                          currentPage === totalPages
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-white border border-gray-200 text-[#272727] hover:bg-gray-50"
+                        }`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </main>
         </div>
